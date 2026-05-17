@@ -11,7 +11,7 @@
 #include <cachefile.h>
 #include <args.h>
 #include <dependsfile.h>
-#include <path.h>
+#include <string.path.h>
 #include <rootfile.h>
 #include <graphfile.h>
 
@@ -45,7 +45,7 @@ void param_workdir(Args *args, ArgValue value)
   const char *path =  strcmp(value.as_charptr, ".") ? value.as_charptr : "/home/phil/Program/Utilities/CUT"; // TODO: Change!!
   
   int pathlen = strlen(path);
-  int namelen = filenamewopath(path, 0, NULL);
+  int namelen = fnamext(path, 0, NULL);
 
   env->path = path;
   env->name = env->path + (pathlen - namelen);
@@ -74,11 +74,11 @@ void update_cache(Env *env, CacheFile *cache, CacheFile *packages, CacheFile *fi
     {
       String *folder = String_Cat(Path_Combine(env->path, root->base), i == 0 ? "/inc" : "/src");
 
-      for (DirectoryIterator *di = dopen(folder->base); di; dnext(&di)) {
+      for (DirectoryIterator *di = dopen(folder->base); !ddone(di); dnext(di)) {
         if (di->current.type == DIRTYPE_FILE) {
           char filepath[PATH_MAX];
 
-          dfullname(di, sizeof(filepath), filepath);
+          dname(di, sizeof(filepath), filepath);
 
           long         timestamp = statfile(filepath);
           CacheRecord *record    = CacheFile_GetKey(files, di->current.name);

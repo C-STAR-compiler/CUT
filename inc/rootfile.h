@@ -6,6 +6,7 @@
 #include <filestream.h>
 #include <set.h>
 
+#define PUBLIC
 #define TYPENAME RootFile
 
 OBJECT (const char *filename, AccessModes mode) INHERIT (Set)
@@ -14,4 +15,5 @@ OBJECT (const char *filename, AccessModes mode) INHERIT (Set)
 END_OBJECT("", ACCESS_READ);
 
 #undef TYPENAME
+#undef PUBLIC
 #endif

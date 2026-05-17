@@ -6,6 +6,7 @@
 #include <str.h>
 #include <graph.h>
 
+#define PUBLIC
 #define TYPENAME Dependency
 
 OBJECT (const char *path, const Matrix *adjacency, const Set *labels) INHERIT (String)
@@ -19,5 +20,6 @@ int _(Comparer)(const String *other)  VIRTUAL (Comparer);
 int _(KeyComparer)(const char *other) VIRTUAL (KeyComparer);
 
 #undef TYPENAME
+#undef PUBLIC
 
 #endif

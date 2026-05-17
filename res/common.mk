@@ -46,7 +46,7 @@ endif
 
 # Add the debug flag if variable is defined
 ifdef DEBUG
-	CFLAGS += -g
+	CFLAGS += -g -DMEMORY_WATCH
 endif
 
 # Find which source is associated with the object
@@ -62,6 +62,7 @@ bin:
 
 .cut:
 	mkdir .cut
+	$(foreach root, $(DIRECTORIES), echo $(root) >> .cut/roots;)
 
 # File dependencies
 .cut/$(DEPENDS): $(HEADERS) | .cut
@@ -102,7 +103,7 @@ bin/$(NAME).test: library | bin
 	$(eval INC:=  $(patsubst %, -I%/inc, $(shell $(BOOTSTRAP) --library)))
 	$(eval FILE:= $(filter-out -l:, $(foreach path, $(LIBS), -l:$(notdir $(wildcard $(path)/*)))))
 
-	$(CMP) -g tst/main$(EXT_SRC) $(CFLAGS) $(INCLUDES) $(INC) -Llib -l$(NAME) $(LINK) $(FILE) $(LIBRARIES) $(RPATH) -o bin/$(NAME).test 
+	$(CMP) -g tst/main$(EXT_SRC) $(CFLAGS) -DMEMORY_WATCH $(INCLUDES) $(INC) -Llib -l$(NAME) $(LINK) $(FILE) $(FILE) $(LIBRARIES) $(RPATH) -o bin/$(NAME).test 
 
 reset:
 	rm -f bin/$(NAME).test

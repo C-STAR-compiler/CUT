@@ -13,7 +13,7 @@ PROJECT_ROOTS =
 LIBRARIES = -lm
 
 # Additionnal flags for the compiler
-FLAGS = -DMEMORY_WATCH
+FLAGS =
 
 include res/program.mk
 

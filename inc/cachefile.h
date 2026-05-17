@@ -9,6 +9,7 @@
 #include <mapset.h>
 #include <collection.str.h>
 
+#define PUBLIC
 #define TYPENAME CacheFile
 
 OBJECT (const char *filename, AccessModes mode) INHERIT (MapSet)
@@ -22,5 +23,6 @@ CacheRecord *_(Get)(const String *key);
 CacheRecord *_(GetKey)(const char *key);
 
 #undef TYPENAME
+#undef PUBLIC
 
 #endif

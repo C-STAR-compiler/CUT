@@ -10,6 +10,7 @@
 #include <charstream.h>
 #include <set.h>
 
+#define PUBLIC
 #define TYPENAME DependsFile
 
 OBJECT (const char *filename, AccessModes mode) INHERIT (Map)
@@ -18,4 +19,5 @@ OBJECT (const char *filename, AccessModes mode) INHERIT (Map)
 END_OBJECT("", ACCESS_READ);
 
 #undef TYPENAME
+#undef PUBLIC
 #endif

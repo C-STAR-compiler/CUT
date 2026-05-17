@@ -2,28 +2,29 @@
 #include <args.h>
 #include <objectarray.h>
 #include <directory.h>
-#include <path.h>
+#include <string.path.h>
 #include <charstream.h>
 #include <processstream.h>
-#include <mapfile.h>
 #include <print.h>
+#include <dependsfile.h>
 
 OPTIONS(
-  { "lang",   ' ', "Which language/compiler to use for building (default C/gcc)", ARG_TYPE_CHARPTR, NULL },
-  { "nowarn", 'w', "Disable 'all warnings' switch on compiler (not recommended)", ARG_TYPE_BOOLEAN, NULL },
-  { "debug",  'd', "Should the program be compiled with debug symbols",           ARG_TYPE_BOOLEAN, NULL },
-  { "memory", 'm', "Use diagnostic memory functions (much slower)",               ARG_TYPE_BOOLEAN, NULL },
-  { "path",   '-', "The root path of the cut project to build",                   ARG_TYPE_CHARPTR, NULL }
+  { "lang",    ' ', "Which language/compiler to use for building (default C/gcc)", ARG_TYPE_CHARPTR, NULL },
+  { "nowarn",  'w', "Disable 'all warnings' switch on compiler (not recommended)", ARG_TYPE_BOOLEAN, NULL },
+  { "debug",   'd', "Should the program be compiled with debug symbols",           ARG_TYPE_BOOLEAN, NULL },
+  { "memory",  'm', "Use diagnostic memory functions (much slower)",               ARG_TYPE_BOOLEAN, NULL },
+  { "verbose", 'V', "Prints which commands are being run",                         ARG_TYPE_BOOLEAN, NULL },
+  { "path",    '-', "The root path of the cut project to build",                   ARG_TYPE_CHARPTR, NULL }
 );
 
 void get_files(const char *folder, const char *extension, const char *filter, ObjectArray *files)
 {
-  for (DirectoryIterator *di = dopen(folder); di; dnext(&di)) {
-    char fullname[2048];
-    char ext[8];
+  for (DirectoryIterator *di = dopen(folder); !ddone(di); dnext(di)) {
+    char fullname[PATH_MAX_LENGTH];
+    char ext[PATH_MAX_LENGTH];
 
-    dfullname(di, sizeof(fullname), fullname);
-    fileext(di->current.name, sizeof(ext), ext);
+    dname(di, sizeof(fullname), fullname);
+    fext(di->current.name, sizeof(ext), ext);
 
     if (filter && di->current.type == DIRTYPE_DIRECTORY) {
       if (!strcmp(filter, di->current.name)) {
@@ -41,12 +42,12 @@ String *get_lib(String *folder)
 {
   String *library = NULL;
 
-  for (DirectoryIterator *di = dopen(folder->base); di; dnext(&di))
+  for (DirectoryIterator *di = dopen(folder->base); !ddone(di); dnext(di))
   {
     if (di->current.type == DIRTYPE_FILE) {
       library = NEW (String) (di->current.name);
 
-      dclose(&di);
+      dclose(di);
       break;
     }
   }
@@ -70,14 +71,9 @@ Map *get_libs(Array *packages)
   return libraries;
 }
 
-String *run(const char *command)
-{
-  return CharStream_GetToEnd((CharStream*)ProcessStream_Open(command, ACCESS_READ));
-}
-
 String *runs(String *command)
 {
-  String *result = run(command->base);
+  String *result = NEW (String) (run(command->base));
 
   DELETE(command);
 
@@ -93,7 +89,7 @@ void systems(String *command)
 
 String *get_date()
 {
-  return run("date +\"%Y-%m-%d %H:%M:%S\"");
+  return NEW (String) (run("date +\"%Y-%m-%d %H:%M:%S\""));
 }
 
 int header_comparer(String *against, String *reference)
@@ -125,9 +121,27 @@ String *compile_obj(String *init, ObjectArray *includes, Array *libraries, Strin
   return init;
 }
 
-String *compile_bin(String *init, ObjectArray *includes, Array *libraries, ObjectArray *inputs, String *output)
+String *compile_bin(String *command, ObjectArray *includes, Map *libraries, ObjectArray *inputs, String *output)
 {
-  
+  for (int i = 0; i < includes->base.size; i++) {
+    String_Cat(command, " -I");
+    String_Concat(command, String_Copy(ObjectArray_At(includes, i)));
+  }
+
+  for (List *l = (List*)libraries; !List_Empty(l); l = List_Next(l)) {
+    Pair *library = List_Head(l);
+
+    String* libpath = library->first;
+    String* libname = library->second;
+
+    String_Cat(command, " -L");
+    String_Concat(command, String_Copy(libpath));
+
+    String_Cat(command, " -l:");
+    String_Concat(command, String_Copy(libname));
+  }
+
+  return command;
 }
 
 
@@ -153,16 +167,16 @@ int main(int argc, char *argv[])
 
     //systems(String_Cat(NEW (String) ("cut depends -su "), buffer));
 
-    name = String_ToLower(Path_FileName(buffer));
+    name = String_ToLower(Path_File(buffer));
 
-    dclose(&dir);
+    dclose(dir);
     DELETE (dirpath);
   } else {
     THROW (NEW (Exception) ("The 'CUT_HOME' environment variable is not set! Aborting..."));
   }
 
   String *deppath = Path_Combine(path, ".cut/depends.map");
-  Map    *depends = (Map*)NEW (MapFile) (deppath->base, ACCESS_READ);
+  Map    *depends = (Map*)NEW (DependsFile) (deppath->base, ACCESS_READ);
 
   int c = !strcmp(IFNULL(Args_Name(args, "lang").as_charptr, "c"), "c");
   
@@ -174,7 +188,7 @@ int main(int argc, char *argv[])
   const char *srcext   = c ? ".c"  : ".cpp";
   const char *compiler = c ? "gcc" : "g++";
 
-  Map    *libraries = get_libs(Map_ValueAt(depends, "packages"));
+  Map    *libraries = get_libs(Map_ValueAtKey(depends, "packages"));
   String *command   = NEW (String) (compiler);
 
   ObjectArray *headers = NEW (ObjectArray) (TYPEOF (String));
@@ -184,7 +198,6 @@ int main(int argc, char *argv[])
   get_files(path, hdrext, "inc", headers);
   get_files(path, srcext, "src", sources);
 
-  // All wa
   if (!nowarn) {
     String_Cat(command, " -Wall");
   }
@@ -205,9 +218,9 @@ int main(int argc, char *argv[])
   String_Concat(command, String_Format(" -DBUILD_DATE='%Of'", get_date()));
 
   for (int i = 0; i < sources->base.size; i++) {
-    String *path   = Array_At((Array*)sources, i);
-    //String *header = String_Concat(Path_FileName(path->base), NEW (String) (hdrext));
+    String *path   = ObjectArray_At(sources, i);
 
+    //String *header = String_Concat(Path_FileName(path->base), NEW (String) (hdrext));
     //void *in = ObjectArray_In(headers, header, (Comparer)header_comparer);
 
     String *n = Path_File(path->base);
@@ -216,7 +229,7 @@ int main(int argc, char *argv[])
 
     ObjectArray_Fill(tmp, NEW (String) ("this"), NEW (String)("test"), NULL);
 
-    print("%Of\n", compile_bin(String_Copy(command), Map_ValueAt(depends, n->base), (Array*)libraries, tmp, n));
+    print("%Of\n", compile_bin(String_Copy(command), Map_ValueAt(depends, n), libraries, tmp, n));
 
     DELETE (tmp);
     DELETE (n);

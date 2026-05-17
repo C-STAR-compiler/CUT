@@ -7,7 +7,7 @@ Dependency *_(Construct)(const char *path, const Matrix *adjacency, const Set *l
   if (String_Construct(BASE(0), path)) {
     this->adjacency = adjacency;
     this->labels    = labels;
-    this->start     = Set_ContainsKey(labels, path);
+    this->start     = labels && Set_ContainsKey(labels, path);
   }
 
   return this;
@@ -25,15 +25,19 @@ int _(Comparer)(const String *other)
 
 int _(KeyComparer)(const char *other)
 {
-  int dest = Set_ContainsKey(this->labels, other);
+  if (this->labels && this->adjacency) {
+    int dest = Set_ContainsKey(this->labels, other);
 
-  if (this->start == dest) {
-    return 0;
-  } else if (this->adjacency->base[this->start][dest] > 0){
-    return 1;
-  } else {
-    return -1;
+    if (this->start == dest) {
+      return 0;
+    } else if (this->adjacency->base[this->start][dest] > 0){
+      return 1;
+    } else {
+      return -1;
+    }
   }
+
+  return 0;
 }
 
 

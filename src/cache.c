@@ -4,7 +4,7 @@
 #include <cachefile.h>
 #include <graph.h>
 #include <str.h>
-#include <path.h>
+#include <string.path.h>
 #include <args.h>
 #include <rootfile.h>
 #include <graphfile.h>
@@ -32,16 +32,16 @@ OPTIONS(
 void build_cache(Env *env, CacheFile *cache, CacheFile *fileCache, CacheFile *pkgCache)
 {
   // TODO: (low): Standardize: standardize DirectoryIterator with Iterator (beware of impact on dep tree)
-  for (DirectoryIterator *di = dopen(env->home); di; dnext(&di)) {
+  for (DirectoryIterator *di = dopen(env->home); !ddone(di); dnext(di)) {
     if (di->current.type == DIRTYPE_DIRECTORY && di->current.name[0] != '.') {
       char      pkgpath[PATH_MAX];
       String   *rootpath;
 
-      dfullname(di, sizeof(pkgpath), pkgpath);
+      dname(di, sizeof(pkgpath), pkgpath);
 
       rootpath = Path_Combine(pkgpath, ".cut/roots");
 
-      if (fileexists(rootpath->base, FILE_EXISTS)) {
+      if (fexists(rootpath->base, FILE_EXISTS)) {
         // We're in a CUT project
         RootFile *roots = NEW (RootFile) (rootpath->base, ACCESS_READ);
 
@@ -54,11 +54,11 @@ void build_cache(Env *env, CacheFile *cache, CacheFile *fileCache, CacheFile *pk
           {
             String *folder = String_Cat(Path_Combine(pkgpath, root->base), i == 0 ? "/inc" : "/src");
 
-            for (DirectoryIterator *dj = dopen(folder->base); dj; dnext(&dj)) {
+            for (DirectoryIterator *dj = dopen(folder->base); !ddone(dj); dnext(dj)) {
               if (dj->current.type == DIRTYPE_FILE) {
                 char filepath[PATH_MAX];
 
-                dfullname(dj, sizeof(filepath), filepath);
+                dname(dj, sizeof(filepath), filepath);
 
                 long timestamp = statfile(filepath);
 

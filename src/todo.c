@@ -8,7 +8,7 @@
 #include <args.h>
 
 #define WIDTH_FILE 40
-#define WIDTH_LINE  5
+#define WIDTH_LINE 10
 #define WIDTH_PRIO 15
 #define WIDTH_WHAT 20
 #define WIDTH_DESC 40
@@ -55,13 +55,13 @@ int main(int argc, char *argv[])
 
   path = path ? path : ".";
 
-  for (DirectoryIterator *di = dopen(path); di; dnext(&di))
+  for (DirectoryIterator *di = dopen(path); !ddone(di); dnext(di))
   {
-    char fullname[4096];
+    char fullname[PATH_MAX_LENGTH << 1];
     char extension[32];
 
-    sprintf(fullname, "%s%s", di->path, di->current.name);
-    fileext(di->current.name, sizeof(extension), extension);
+    sprintf(fullname, "%s/%s", di->path, di->current.name);
+    fext(di->current.name, sizeof(extension), extension);
 
     if (di->current.type == DIRTYPE_FILE && (!strcmp(extension, ".c") || !strcmp(extension, ".h")))
     {

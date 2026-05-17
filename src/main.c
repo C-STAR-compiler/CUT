@@ -7,7 +7,7 @@
 #include <directory.h>
 #include <filestream.h>
 #include <diagnostic.h>
-#include <path.h>
+#include <string.path.h>
 
 #define MAX_ROOTS 8
 
@@ -133,7 +133,8 @@ int main(int argc, char *argv[])
 
   if (ObjectArray_ContainsKey(knownCommands, command))
   {
-    String *cmdParams = String_Concat(Path_Combine(env.home, "CUT/bin/"), NEW (String)(command));
+    String *binPath   = Path_Combine(env.home, "CUT/bin/");
+    String *cmdParams = Path_Combine(binPath->base, command);
     Array  *arguments = Args_Params(args);
 
     for (int i = 0; i < arguments->size; i++) {
@@ -152,6 +153,7 @@ int main(int argc, char *argv[])
 
     DELETE (arguments);
     DELETE (cmdParams);
+    DELETE (binPath);
   } else {
     fprintf(stderr, "The command '%s' is unknown!\n", command);
     printf("Known commands are:\n");

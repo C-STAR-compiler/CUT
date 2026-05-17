@@ -24,7 +24,11 @@ DependsFile *_(Construct)(const char *filename, AccessModes mode)
           if (!line->length) {
             DELETE (line)
           } else if (line->base[0] == ' ') {
-            ObjectArray_Push(current, String_Trim(line));
+            String *dependency = String_Trim(line);
+
+            ObjectArray_Push(current, NEW (Dependency) (dependency->base, NULL, NULL));
+
+            DELETE (dependency)
           } else {
             // Remove the ':'
             String_SubString(line, 0, -1);
