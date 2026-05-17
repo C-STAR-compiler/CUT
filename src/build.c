@@ -73,9 +73,11 @@ Map *get_libs(Array *packages)
 
 String *runs(String *command)
 {
-  String *result = NEW (String) (run(command->base));
+  char   *output = run(command->base);
+  String *result = NEW (String) (output);
 
   DELETE(command);
+  free(output);
 
   return result;
 }
@@ -89,7 +91,7 @@ void systems(String *command)
 
 String *get_date()
 {
-  return NEW (String) (run("date +\"%Y-%m-%d %H:%M:%S\""));
+  return runs(NEW (String) ("date +\"%Y-%m-%d %H:%M:%S\""));
 }
 
 int header_comparer(String *against, String *reference)
@@ -121,8 +123,10 @@ String *compile_obj(String *init, ObjectArray *includes, Array *libraries, Strin
   return init;
 }
 
-String *compile_bin(String *command, ObjectArray *includes, Map *libraries, ObjectArray *inputs, String *output)
+String *compile_bin(const String *command_base, const ObjectArray *includes, const Map *libraries, const ObjectArray *inputs, const String *output)
 {
+  String *command = String_Copy(command_base);
+
   for (int i = 0; i < includes->base.size; i++) {
     String_Cat(command, " -I");
     String_Concat(command, String_Copy(ObjectArray_At(includes, i)));
@@ -140,6 +144,9 @@ String *compile_bin(String *command, ObjectArray *includes, Map *libraries, Obje
     String_Cat(command, " -l:");
     String_Concat(command, String_Copy(libname));
   }
+
+  String_Cat(command, " -o ");
+  String_Concat(command, String_Copy(output));
 
   return command;
 }
@@ -229,7 +236,12 @@ int main(int argc, char *argv[])
 
     ObjectArray_Fill(tmp, NEW (String) ("this"), NEW (String)("test"), NULL);
 
-    print("%Of\n", compile_bin(String_Copy(command), Map_ValueAt(depends, n), libraries, tmp, n));
+    // TODO: finish here
+    String *build = compile_bin(command, Map_ValueAt(depends, n), libraries, tmp, n);
+
+    String *result = runs(build);
+
+    print("%Of\n%Of\n", build, result);
 
     DELETE (tmp);
     DELETE (n);

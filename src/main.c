@@ -104,6 +104,16 @@ OPTIONS(
   { "arguments", '*', "The arguments passed to the cut command",                  ARG_TYPE_CHARPTR, NULL           }
 );
 
+void print_help(const ObjectArray *knownCommands) {
+  printf("Known commands are:\n");
+
+  for (int i = 0; i < knownCommands->base.size; i++) {
+    printf("\t%s\n", (char*)Array_AtDeref((const Array*)knownCommands, i));
+  }
+
+  printf("\nTo know more about a specific command, try running 'cut COMMAND -h'...\n");
+}
+
 int main(int argc, char *argv[])
 {
   Global env = {
@@ -120,8 +130,6 @@ int main(int argc, char *argv[])
     THROW(NEW (Exception)("No CUT_HOME environment variable defined... exiting!"));
   }
 
-  Args        *args          = NEW (Args) (argc, argv, &env);
-  const char  *command       = Args_Name(args, "command").as_charptr;
   ObjectArray *knownCommands = ObjectArray_Fill(NEW (ObjectArray)(TYPEOF(String)),
     NEW (String) ("todo"),
     NEW (String) ("cache"),
@@ -130,6 +138,19 @@ int main(int argc, char *argv[])
     NEW (String) ("roots"),
     NULL
   );
+
+  Args        *args;
+  const char  *command;
+  
+  TRY {
+    args    = NEW (Args) (argc, argv, &env);
+    command = Args_Name(args, "command").as_charptr;
+  } CATCH (Exception) {
+    fprintf(stderr, "No command provided to cut!\n");
+    print_help(knownCommands);
+    exit(0);
+  } END_TRY;
+
 
   if (ObjectArray_ContainsKey(knownCommands, command))
   {
@@ -156,13 +177,7 @@ int main(int argc, char *argv[])
     DELETE (binPath);
   } else {
     fprintf(stderr, "The command '%s' is unknown!\n", command);
-    printf("Known commands are:\n");
-
-    for (int i = 0; i < knownCommands->base.size; i++) {
-      printf("\t%s\n", (char*)Array_AtDeref((Array*)knownCommands, i));
-    }
-
-    printf("\nTo know more about a specific command, try running 'cut COMMAND -h'...\n");
+    print_help(knownCommands);
   }
 
   // TODO: (high): Refactor: Remove
